@@ -61,9 +61,20 @@ def get_weather():
 
     hourly_url = properties["forecastHourly"]
     daily_url = properties["forecast"]
+    extended_url = (
+    "https://api.open-meteo.com/v1/forecast"
+    "?latitude=39.7857"
+    "&longitude=-75.9788"
+    "&timezone=America%2FNew_York"
+    "&temperature_unit=fahrenheit"
+    "&daily=weather_code,temperature_2m_max,temperature_2m_min,"
+    "precipitation_probability_max"
+    "&forecast_days=14"
+)
 
     hourly = cached_json("hourly", hourly_url)
     daily = cached_json("daily", daily_url)
+    extended = cached_json("extended", extended_url)
 
     stations_url = properties["observationStations"]
     stations = cached_json("stations", stations_url, 604800)
@@ -85,11 +96,12 @@ def get_weather():
     )
 
     return {
-        "hourly": hourly["properties"]["periods"],
-        "daily": daily["properties"]["periods"],
-        "current": observation["properties"],
-        "station": station_id
-    }
+    "hourly": hourly["properties"]["periods"],
+    "daily": daily["properties"]["periods"],
+    "extended": extended,
+    "current": observation["properties"],
+    "station": station_id
+}
 
 
 def celsius_to_fahrenheit(value):
