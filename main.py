@@ -172,7 +172,10 @@ def current_screen(weather):
         current.get("windSpeed", {}).get("value")
     )
 
-    description = current.get("textDescription") or "Unknown"
+    description = current.get("textDescription")
+
+    if not description or description.lower() == "unknown":
+        description = weather["hourly"][0].get("shortForecast", "Unknown")
     wind_direction = current.get("windDirection", {}).get("value")
 
     observed = current.get("timestamp", "")
