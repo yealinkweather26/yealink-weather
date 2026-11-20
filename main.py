@@ -363,7 +363,50 @@ def extended_screen(weather):
 
     return xml_screen("14 Day Forecast", lines)
 
+def get_active_alerts():
+    url = (
+        "https://api.weather.gov/alerts/active"
+        "?point=39.7857,-75.9788"
+    )
 
+    return cached_json("alerts", url, 300)
+
+
+def alerts_screen():
+    data = get_active_alerts()
+    features = data.get("features", [])
+
+    lines = ["Oxford, Pennsylvania", ""]
+
+    if not features:
+        lines.append("No active weather alerts.")
+        lines.append("")
+        lines.append("No warnings or advisories.")
+        return xml_screen("Weather Alerts", lines)
+
+    lines.append(f"Active alerts: {len(features)}")
+    lines.append("")
+
+    for alert in features[:4]:
+        details = alert.get("properties", {})
+
+        event = details.get("event", "Weather Alert")
+        severity = details.get("severity", "Unknown")
+        area = details.get("areaDesc", "")
+        ends = details.get("ends") or details.get("expires", "")
+
+        lines.append(event[:55])
+        lines.append(f"Severity: {severity}")
+
+        if area:
+            lines.append(area[:65])
+
+        if ends:
+            lines.append(f"Expires: {ends[:16]}")
+
+        lines.append("")
+
+    return xml_screen("Weather Alerts", lines)
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
@@ -406,31 +449,29 @@ class WeatherHandler(BaseHTTPRequestHandler):
             self.send_content(weather_menu(host))
             return
 
-        if path not in ("/current", "/hourly", "/daily", "/14day"):
+        if path not in ("/current", "/hourly", "/daily", "/alerts"):
             self.send_content(
                 xml_screen("Weather", ["Page not found"])
             )
             return
 
         try:
-            weather = get_weather()
-
-            if path == "/14day":
-               weather["extended"] = get_extended_forecast()
-
-            if path == "/current":
-                result = current_screen(weather)
-            elif path == "/hourly":
-                result = hourly_screen(weather)
-            elif path == "/daily":
-                result = daily_screen(weather)
+            if path == "/alerts":
+                result = alerts_screen()
             else:
-                result = extended_screen(weather)
-    
+                weather = get_weather()
+
+                if path == "/current":
+                    result = current_screen(weather)
+                elif path == "/hourly":
+                    result = hourly_screen(weather)
+                else:
+                    result = daily_screen(weather)
+
             self.send_content(result)
 
         except Exception as error:
-            logging.exception("NOAA weather request failed")
+            logging.exception("Weather request failed")
             message = (
                 f"{type(error).__name__}: {str(error)[:150]}"
             )
