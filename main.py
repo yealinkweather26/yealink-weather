@@ -2,6 +2,8 @@
 import os
 import html
 import logging
+import threading
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -9,78 +11,116 @@ from socketserver import ThreadingMixIn
 
 import requests
 
-# Oxford, Pennsylvania
 LATITUDE = 39.7857
 LONGITUDE = -75.9788
 TIMEZONE = "America/New_York"
 
-WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
-
-WEATHER_CODES = {
-    0: "Clear",
-    1: "Mostly Clear",
-    2: "Partly Cloudy",
-    3: "Cloudy",
-    45: "Fog",
-    48: "Freezing Fog",
-    51: "Light Drizzle",
-    53: "Drizzle",
-    55: "Heavy Drizzle",
-    61: "Light Rain",
-    63: "Rain",
-    65: "Heavy Rain",
-    71: "Light Snow",
-    73: "Snow",
-    75: "Heavy Snow",
-    80: "Rain Showers",
-    81: "Showers",
-    82: "Heavy Showers",
-    95: "Thunderstorm",
-    96: "Thunderstorm Hail",
-    99: "Severe Thunderstorm",
+NWS_HEADERS = {
+    "User-Agent": "YealinkWeather/1.0 (weather display application)",
+    "Accept": "application/geo+json"
 }
 
+CACHE_SECONDS = 900
+cache = {}
+cache_lock = threading.Lock()
 
-def weather_description(code):
-    return WEATHER_CODES.get(code, "Unknown")
+session = requests.Session()
+session.headers.update(NWS_HEADERS)
 
 
-def get_weather():
-    params = {
-        "latitude": LATITUDE,
-        "longitude": LONGITUDE,
-        "timezone": TIMEZONE,
-        "temperature_unit": "fahrenheit",
-        "wind_speed_unit": "mph",
-        "current": (
-            "temperature_2m,relative_humidity_2m,"
-            "apparent_temperature,precipitation,"
-            "weather_code,wind_speed_10m,wind_direction_10m"
-        ),
-        "hourly": (
-            "temperature_2m,precipitation_probability,"
-            "weather_code,wind_speed_10m"
-        ),
-        "daily": (
-            "weather_code,temperature_2m_max,temperature_2m_min,"
-            "precipitation_probability_max"
-        ),
-        "forecast_days": 7,
-        "forecast_hours": 48,
-    }
-
-    response = requests.get(WEATHER_URL, params=params, timeout=20)
+def fetch_json(url):
+    response = session.get(url, timeout=25)
     response.raise_for_status()
     return response.json()
 
 
+def cached_json(key, url, seconds=CACHE_SECONDS):
+    now = time.time()
+
+    with cache_lock:
+        item = cache.get(key)
+        if item and now - item["time"] < seconds:
+            return item["data"]
+
+    data = fetch_json(url)
+
+    with cache_lock:
+        cache[key] = {"time": now, "data": data}
+
+    return data
+
+
+def get_weather():
+    point_url = (
+        f"https://api.weather.gov/points/"
+        f"{LATITUDE},{LONGITUDE}"
+    )
+
+    point = cached_json("point", point_url, 604800)
+    properties = point["properties"]
+
+    hourly_url = properties["forecastHourly"]
+    daily_url = properties["forecast"]
+
+    hourly = cached_json("hourly", hourly_url)
+    daily = cached_json("daily", daily_url)
+
+    stations_url = properties["observationStations"]
+    stations = cached_json("stations", stations_url, 604800)
+
+    features = stations.get("features", [])
+    if not features:
+        raise RuntimeError("No nearby observation stations found")
+
+    station_id = features[0]["properties"]["stationIdentifier"]
+    observation_url = (
+        f"https://api.weather.gov/stations/"
+        f"{station_id}/observations/latest"
+    )
+
+    observation = cached_json(
+        "observation",
+        observation_url,
+        600
+    )
+
+    return {
+        "hourly": hourly["properties"]["periods"],
+        "daily": daily["properties"]["periods"],
+        "current": observation["properties"],
+        "station": station_id
+    }
+
+
+def celsius_to_fahrenheit(value):
+    if value is None:
+        return None
+    return value * 9 / 5 + 32
+
+
+def meters_to_mph(value):
+    if value is None:
+        return None
+    return value * 2.236936
+
+
 def direction(degrees):
+    if degrees is None:
+        return "N/A"
+
     directions = [
         "N", "NNE", "NE", "ENE", "E", "ESE",
         "SE", "SSE", "S", "SSW", "SW", "WSW",
         "W", "WNW", "NW", "NNW"
     ]
+
     return directions[int((degrees + 11.25) / 22.5) % 16]
+
+
+def safe_number(value, digits=1):
+    if value is None:
+        return "N/A"
+    return f"{value:.{digits}f}"
 
 
 def xml_screen(title, lines):
@@ -96,27 +136,174 @@ def xml_screen(title, lines):
     )
 
 
+def weather_menu(host):
+    return (
+        '<?xml version="1.0" encoding="ISO-8859-1"?>'
+        '<YealinkIPPhoneTextMenu>'
+        '<Title>Oxford PA Weather</Title>'
+        '<MenuItem><Prompt>Current Conditions</Prompt>'
+        f'<URI>https://{host}/current</URI></MenuItem>'
+        '<MenuItem><Prompt>24 Hour Forecast</Prompt>'
+        f'<URI>https://{host}/hourly</URI></MenuItem>'
+        '<MenuItem><Prompt>7 Day Forecast</Prompt>'
+        f'<URI>https://{host}/daily</URI></MenuItem>'
+        '</YealinkIPPhoneTextMenu>'
+    )
+
+
+def current_screen(weather):
+    current = weather["current"]
+
+    temperature = celsius_to_fahrenheit(
+        current.get("temperature", {}).get("value")
+    )
+
+    feels = celsius_to_fahrenheit(
+        current.get("heatIndex", {}).get("value")
+    )
+
+    if feels is None:
+        feels = celsius_to_fahrenheit(
+            current.get("windChill", {}).get("value")
+        )
+
+    humidity = current.get("relativeHumidity", {}).get("value")
+    wind = meters_to_mph(
+        current.get("windSpeed", {}).get("value")
+    )
+
+    description = current.get("textDescription") or "Unknown"
+    wind_direction = current.get("windDirection", {}).get("value")
+
+    observed = current.get("timestamp", "")
+    if observed:
+        try:
+            observed = datetime.fromisoformat(
+                observed.replace("Z", "+00:00")
+            ).astimezone(ZoneInfo(TIMEZONE)).strftime("%I:%M %p")
+        except ValueError:
+            pass
+
+    lines = [
+        "Oxford, Pennsylvania",
+        "",
+        description,
+        f"Temperature: {safe_number(temperature)} F",
+        f"Feels Like: {safe_number(feels)} F",
+        f"Humidity: {safe_number(humidity, 0)}%",
+        f"Wind: {safe_number(wind)} mph",
+        f"Direction: {direction(wind_direction)}",
+        "",
+        f"Station: {weather['station']}",
+        f"Observed: {observed}"
+    ]
+
+    return xml_screen("Current Conditions", lines)
+
+
+def hourly_screen(weather):
+    periods = weather["hourly"][:24]
+    lines = ["Oxford PA - Hourly Forecast", ""]
+
+    for period in periods:
+        start = datetime.fromisoformat(
+            period["startTime"].replace("Z", "+00:00")
+        ).astimezone(ZoneInfo(TIMEZONE))
+
+        label = start.strftime("%a %I %p").replace(" 0", " ")
+        temperature = period.get("temperature")
+        description = period.get("shortForecast", "Unknown")
+
+        probability = (
+            period.get("probabilityOfPrecipitation") or {}
+        ).get("value")
+
+        wind = period.get("windSpeed", "N/A")
+
+        lines.append(
+            f"{label}: {temperature} F"
+        )
+        lines.append(
+            f"{description} | Rain {probability if probability is not None else 'N/A'}%"
+        )
+        lines.append(f"Wind: {wind}")
+        lines.append("")
+
+    return xml_screen("24 Hour Forecast", lines)
+
+
+def daily_screen(weather):
+    periods = weather["daily"]
+    grouped = {}
+
+    for period in periods:
+        date = period["startTime"][:10]
+
+        if date not in grouped:
+            grouped[date] = {}
+
+        if period.get("isDaytime"):
+            grouped[date]["day"] = period
+        else:
+            grouped[date]["night"] = period
+
+    lines = ["Oxford, Pennsylvania", ""]
+
+    for date, values in list(grouped.items())[:7]:
+        day = values.get("day")
+        night = values.get("night")
+
+        label = datetime.fromisoformat(date).strftime("%a %b %d")
+
+        if day:
+            lines.append(
+                f"{label}: {day.get('shortForecast', 'Unknown')}"
+            )
+            lines.append(
+                f"High: {day.get('temperature', 'N/A')} F"
+            )
+
+            rain = (
+                day.get("probabilityOfPrecipitation") or {}
+            ).get("value")
+
+            lines.append(
+                f"Rain chance: {rain if rain is not None else 'N/A'}%"
+            )
+
+        if night:
+            lines.append(
+                f"Overnight Low: {night.get('temperature', 'N/A')} F"
+            )
+
+        lines.append("")
+
+    return xml_screen("7 Day Forecast", lines)
+
+
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
 
 class WeatherHandler(BaseHTTPRequestHandler):
 
-    def send_xml(self, content):
+    def send_content(self, content, content_type="text/xml"):
         data = content.encode("iso-8859-1", errors="replace")
+
         self.send_response(200)
-        self.send_header("Content-Type", "text/xml; charset=ISO-8859-1")
+        self.send_header(
+            "Content-Type",
+            f"{content_type}; charset=ISO-8859-1"
+        )
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        self.wfile.write(data)
 
-    def send_error_text(self, message):
-        self.send_xml(xml_screen("Weather Error", [message]))
+        if self.command != "HEAD":
+            self.wfile.write(data)
 
-    def base_url(self):
-        host = self.headers.get("Host", "localhost")
-        return "https://" + host
+    def do_HEAD(self):
+        self.do_GET()
 
     def do_GET(self):
         path = self.path.split("?")[0].rstrip("/")
@@ -124,123 +311,65 @@ class WeatherHandler(BaseHTTPRequestHandler):
             path = "/"
 
         if path == "/health":
-            data = b"Weather service is running"
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
+            self.send_content(
+                "Weather service is running",
+                "text/plain"
+            )
             return
 
         if path == "/":
-            base = self.base_url()
-            menu = (
-                '<?xml version="1.0" encoding="ISO-8859-1"?>'
-                '<YealinkIPPhoneTextMenu>'
-                '<Title>Oxford PA Weather</Title>'
-                '<MenuItem><Prompt>Current Conditions</Prompt>'
-                f'<URI>{base}/current</URI></MenuItem>'
-                '<MenuItem><Prompt>24 Hour Forecast</Prompt>'
-                f'<URI>{base}/hourly</URI></MenuItem>'
-                '<MenuItem><Prompt>7 Day Forecast</Prompt>'
-                f'<URI>{base}/daily</URI></MenuItem>'
-                '</YealinkIPPhoneTextMenu>'
+            host = self.headers.get("Host", "localhost")
+            self.send_content(weather_menu(host))
+            return
+
+        if path not in ("/current", "/hourly", "/daily"):
+            self.send_content(
+                xml_screen("Weather", ["Page not found"])
             )
-            self.send_xml(menu)
             return
 
         try:
             weather = get_weather()
 
             if path == "/current":
-                current = weather["current"]
-                lines = [
-                    "Oxford, Pennsylvania",
-                    "",
-                    weather_description(current["weather_code"]),
-                    f"Temperature: {current['temperature_2m']:.1f} F",
-                    f"Feels Like: {current['apparent_temperature']:.1f} F",
-                    f"Humidity: {current['relative_humidity_2m']}%",
-                    f"Wind: {current['wind_speed_10m']:.1f} mph",
-                    f"Direction: {direction(current['wind_direction_10m'])}",
-                    f"Precipitation: {current['precipitation']} in",
-                    "",
-                    "Updated: " + current["time"].replace("T", " ")
-                ]
-                self.send_xml(xml_screen("Current Conditions", lines))
-                return
+                result = current_screen(weather)
+            elif path == "/hourly":
+                result = hourly_screen(weather)
+            else:
+                result = daily_screen(weather)
 
-            if path == "/hourly":
-                hourly = weather["hourly"]
-                now = datetime.now(ZoneInfo(TIMEZONE)).replace(
-                    tzinfo=None, minute=0, second=0, microsecond=0
-                )
-
-                lines = ["Oxford PA - Next 24 Hours", ""]
-                shown = 0
-
-                for i, time_text in enumerate(hourly["time"]):
-                    hour_time = datetime.fromisoformat(time_text)
-
-                    if hour_time < now:
-                        continue
-
-                    label = hour_time.strftime("%a %I %p").replace(" 0", " ")
-                    temp = hourly["temperature_2m"][i]
-                    rain = hourly["precipitation_probability"][i]
-                    desc = weather_description(hourly["weather_code"][i])
-                    wind = hourly["wind_speed_10m"][i]
-
-                    lines.append(
-                        f"{label}: {temp:.0f} F {desc}"
-                    )
-                    lines.append(f"Rain {rain}%  Wind {wind:.0f} mph")
-                    lines.append("")
-                    shown += 1
-
-                    if shown >= 24:
-                        break
-
-                self.send_xml(xml_screen("24 Hour Forecast", lines))
-                return
-
-            if path == "/daily":
-                daily = weather["daily"]
-                lines = ["Oxford, Pennsylvania", ""]
-
-                for i, date_text in enumerate(daily["time"]):
-                    day = datetime.fromisoformat(date_text)
-                    label = day.strftime("%a %b %d")
-                    desc = weather_description(daily["weather_code"][i])
-                    high = daily["temperature_2m_max"][i]
-                    low = daily["temperature_2m_min"][i]
-                    rain = daily["precipitation_probability_max"][i]
-
-                    lines.append(f"{label}: {desc}")
-                    lines.append(f"High {high:.0f} F  Low {low:.0f} F")
-                    lines.append(f"Rain chance: {rain}%")
-                    lines.append("")
-
-                self.send_xml(xml_screen("7 Day Forecast", lines))
-                return
-
-            self.send_error_text("Page not found")
+            self.send_content(result)
 
         except Exception as error:
-            logging.exception("Weather request failed")
-            self.send_error_text(
-                "Weather data unavailable. Try again shortly."
+            logging.exception("NOAA weather request failed")
+            message = (
+                f"{type(error).__name__}: {str(error)[:150]}"
+            )
+            self.send_content(
+                xml_screen("Weather Error", [message])
             )
 
     def log_message(self, format_string, *args):
-        logging.info("%s - %s", self.client_address[0], format_string % args)
+        logging.info(
+            "%s - %s",
+            self.client_address[0],
+            format_string % args
+        )
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     port = int(os.environ.get("PORT", "8080"))
-    server = ThreadedHTTPServer(("0.0.0.0", port), WeatherHandler)
 
-    print(f"Weather service listening on port {port}", flush=True)
+    server = ThreadedHTTPServer(
+        ("0.0.0.0", port),
+        WeatherHandler
+    )
+
+    print(
+        f"NOAA Weather Service listening on port {port}",
+        flush=True
+    )
+
     server.serve_forever()
