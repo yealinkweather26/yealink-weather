@@ -174,8 +174,6 @@ def weather_menu(host):
         f'<URI>https://{host}/hourly</URI></MenuItem>'
         '<MenuItem><Prompt>7 Day Forecast</Prompt>'
         f'<URI>https://{host}/daily</URI></MenuItem>'
-        '<MenuItem><Prompt>14 Day Forecast</Prompt>'
-        f'<URI>https://{host}/14day</URI></MenuItem>'
         '<MenuItem><Prompt>Weather Alerts</Prompt>'
         f'<URI>https://{host}/alerts</URI></MenuItem>'
         '</YealinkIPPhoneTextMenu>'
