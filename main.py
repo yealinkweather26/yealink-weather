@@ -155,13 +155,12 @@ def xml_screen(title, lines):
     safe_text = html.escape("\n".join(lines))
 
     return (
-        '<?xml version="1.0" encoding="ISO-8859-1"?>'
+        '<?xml version="1.0" encoding="UTF-8"?>'
         '<YealinkIPPhoneTextScreen>'
         f'<Title>{safe_title}</Title>'
         f'<Text>{safe_text}</Text>'
         '</YealinkIPPhoneTextScreen>'
     )
-
 
 def weather_menu(host):
     return (
