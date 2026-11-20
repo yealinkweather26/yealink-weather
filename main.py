@@ -177,7 +177,27 @@ def weather_menu(host):
         f'<URI>https://{host}/alerts</URI></MenuItem>'
         '</YealinkIPPhoneTextMenu>'
     )
+    
+def weather_symbol(description):
+    text = description.lower()
 
+    if "thunder" in text or "storm" in text:
+        return "⚡"
+    elif "snow" in text or "sleet" in text:
+        return "❄"
+    elif "rain" in text or "shower" in text or "drizzle" in text:
+        return "☂"
+    elif "fog" in text:
+        return "≋"
+    elif "cloud" in text:
+        if "partly" in text or "mostly" in text:
+            return "⛅"
+        return "☁"
+    elif "sun" in text or "clear" in text:
+        return "☀"
+
+    return " "
+    
 def current_screen(weather):
     current = weather["current"]
 
@@ -199,7 +219,7 @@ def current_screen(weather):
         current.get("windSpeed", {}).get("value")
     )
 
-    description = current.get("textDescription")
+            f"{weather_symbol(description)} {description}",
 
     if not description or description.lower() == "unknown":
         description = weather["hourly"][0].get("shortForecast", "Unknown")
