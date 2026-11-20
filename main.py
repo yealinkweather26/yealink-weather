@@ -297,6 +297,59 @@ def daily_screen(weather):
         lines.append("")
 
     return xml_screen("7 Day Forecast", lines)
+    
+def extended_screen(weather):
+    daily = weather["extended"]["daily"]
+
+    dates = daily["time"]
+    highs = daily["temperature_2m_max"]
+    lows = daily["temperature_2m_min"]
+    rain = daily["precipitation_probability_max"]
+    codes = daily["weather_code"]
+
+    descriptions = {
+        0: "Sunny",
+        1: "Mostly Sunny",
+        2: "Partly Cloudy",
+        3: "Cloudy",
+        45: "Fog",
+        48: "Fog",
+        51: "Light Drizzle",
+        53: "Drizzle",
+        55: "Heavy Drizzle",
+        61: "Light Rain",
+        63: "Rain",
+        65: "Heavy Rain",
+        71: "Light Snow",
+        73: "Snow",
+        75: "Heavy Snow",
+        80: "Rain Showers",
+        81: "Rain Showers",
+        82: "Heavy Showers",
+        95: "Thunderstorms",
+        96: "Storms/Hail",
+        99: "Storms/Hail"
+    }
+
+    lines = ["Oxford, Pennsylvania", ""]
+
+    for i in range(min(14, len(dates))):
+        label = datetime.fromisoformat(dates[i]).strftime("%a %b %d")
+        description = descriptions.get(codes[i], "Variable")
+        high = highs[i] if highs[i] is not None else "N/A"
+        low = lows[i] if lows[i] is not None else "N/A"
+        chance = rain[i] if rain[i] is not None else "N/A"
+
+        lines.append(
+            f"{label}: {description}"
+        )
+        lines.append(
+            f"High: {high} F  Low: {low} F  Rain: {chance}%"
+        )
+        lines.append("")
+
+    return xml_screen("14 Day Forecast", lines)
+
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -340,7 +393,7 @@ class WeatherHandler(BaseHTTPRequestHandler):
             self.send_content(weather_menu(host))
             return
 
-        if path not in ("/current", "/hourly", "/daily"):
+        if path not in ("/current", "/hourly", "/daily", "/14day"):
             self.send_content(
                 xml_screen("Weather", ["Page not found"])
             )
@@ -353,9 +406,11 @@ class WeatherHandler(BaseHTTPRequestHandler):
                 result = current_screen(weather)
             elif path == "/hourly":
                 result = hourly_screen(weather)
-            else:
+            elif path == "/daily":
                 result = daily_screen(weather)
-
+            else:
+                result = extended_screen(weather)
+    
             self.send_content(result)
 
         except Exception as error:
