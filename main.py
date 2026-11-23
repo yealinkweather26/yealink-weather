@@ -219,10 +219,11 @@ def current_screen(weather):
         current.get("windSpeed", {}).get("value")
     )
 
-            f"{weather_symbol(description)} {description}",
+    description = current.get("textDescription")
 
     if not description or description.lower() == "unknown":
         description = weather["hourly"][0].get("shortForecast", "Unknown")
+
     wind_direction = current.get("windDirection", {}).get("value")
 
     observed = current.get("timestamp", "")
@@ -234,7 +235,7 @@ def current_screen(weather):
         except ValueError:
             pass
 
-        lines = [
+    lines = [
         "Oxford, Pennsylvania",
         "",
         f"{weather_symbol(description)} {description}",
@@ -249,8 +250,7 @@ def current_screen(weather):
     ]
 
     return xml_screen("Current Conditions", lines)
-
-
+    
 def hourly_screen(weather):
     periods = weather["hourly"][:24]
     lines = ["Oxford PA - Hourly Forecast", ""]
