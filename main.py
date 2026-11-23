@@ -234,10 +234,10 @@ def current_screen(weather):
         except ValueError:
             pass
 
-    lines = [
+        lines = [
         "Oxford, Pennsylvania",
         "",
-        description,
+        f"{weather_symbol(description)} {description}",
         f"Temperature: {safe_number(temperature)} F",
         f"Feels Like: {safe_number(feels)} F",
         f"Humidity: {safe_number(humidity, 0)}%",
