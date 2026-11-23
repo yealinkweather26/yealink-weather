@@ -417,7 +417,18 @@ def alerts_screen():
         area = details.get("areaDesc", "")
         ends = details.get("ends") or details.get("expires", "")
 
-        lines.append(event[:55])
+        if severity == "Extreme" or severity == "Severe":
+            symbol = "!"
+        elif "Watch" in event:
+            symbol = "W"
+        elif "Advisory" in event:
+            symbol = "A"
+        elif severity == "Moderate":
+            symbol = "A"
+        else:
+            symbol = "i"
+
+        lines.append(f"{symbol} {event[:53]}")
         lines.append(f"Severity: {severity}")
 
         if area:
@@ -429,7 +440,7 @@ def alerts_screen():
         lines.append("")
 
     return xml_screen("Weather Alerts", lines)
-
+    
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
