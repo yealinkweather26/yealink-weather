@@ -182,23 +182,21 @@ def weather_symbol(description):
     text = description.lower()
 
     if "thunder" in text or "storm" in text:
-        return "[STORM]"
+        return "!!!"
     elif "snow" in text or "sleet" in text:
-        return "[SNOW]"
+        return "***"
     elif "rain" in text or "shower" in text or "drizzle" in text:
-        return "[RAIN]"
+        return "///"
     elif "fog" in text:
-        return "[FOG]"
+        return "~~~"
     elif "cloud" in text:
         if "partly" in text or "mostly" in text:
-            return "[PART]"
-        return "[CLOUD]"
+            return "\\O/"
+        return "(_)"
     elif "sun" in text or "clear" in text:
-        return "[SUN]"
+        return "\\O/"
 
-    return "[WX]"
-    
-    return " "
+    return "..."
     
 def current_screen(weather):
     current = weather["current"]
