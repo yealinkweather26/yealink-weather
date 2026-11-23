@@ -306,8 +306,11 @@ def daily_screen(weather):
         label = datetime.fromisoformat(date).strftime("%a %b %d")
 
         if day:
+            description = day.get("shortForecast", "Unknown")
+            symbol = weather_symbol(description)
+
             lines.append(
-                f"{label}: {day.get('shortForecast', 'Unknown')}"
+                f"{label}: {symbol} {description}"
             )
             lines.append(
                 f"High: {day.get('temperature', 'N/A')} F"
