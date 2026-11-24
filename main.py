@@ -229,7 +229,7 @@ description = current.get("textDescription")
 if not description or description.lower() == "unknown":
         description = weather["hourly"][0].get("shortForecast", "Unknown")
 
-    wind_direction = current.get("windDirection", {}).get("value")
+wind_direction = current.get("windDirection", {}).get("value")
 
     observed = current.get("timestamp", "")
     if observed:
