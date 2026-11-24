@@ -215,9 +215,14 @@ def current_screen(weather):
         )
 
     humidity = current.get("relativeHumidity", {}).get("value")
-    wind = meters_to_mph(
-        current.get("windSpeed", {}).get("value")
-    )
+
+wind = meters_to_mph(
+    current.get("windSpeed", {}).get("value")
+)
+
+gust = meters_to_mph(
+    (current.get("windGust") or {}).get("value")
+)
 
     description = current.get("textDescription")
 
