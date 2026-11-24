@@ -226,7 +226,7 @@ gust = meters_to_mph(
 
 description = current.get("textDescription")
 
-    if not description or description.lower() == "unknown":
+if not description or description.lower() == "unknown":
         description = weather["hourly"][0].get("shortForecast", "Unknown")
 
     wind_direction = current.get("windDirection", {}).get("value")
