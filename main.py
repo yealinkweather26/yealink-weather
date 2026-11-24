@@ -242,8 +242,8 @@ def current_screen(weather):
         f"Temperature: {safe_number(temperature)} F",
         f"Feels Like: {safe_number(feels)} F",
         f"Humidity: {safe_number(humidity, 0)}%",
-        f"Wind: {safe_number(wind)} mph",
-        f"Direction: {direction(wind_direction)}",
+        f"Wind: {direction(wind_direction)} {safe_number(wind)} mph",
+        f"Gusts: {safe_number(gust)} mph",
         "",
         f"Station: {weather['station']}",
         f"Observed: {observed}"
