@@ -216,20 +216,20 @@ def current_screen(weather):
 
     humidity = current.get("relativeHumidity", {}).get("value")
 
-wind = meters_to_mph(
-    current.get("windSpeed", {}).get("value")
-)
+    wind = meters_to_mph(
+        current.get("windSpeed", {}).get("value")
+    )
 
-gust = meters_to_mph(
-    (current.get("windGust") or {}).get("value")
-)
+    gust = meters_to_mph(
+        (current.get("windGust") or {}).get("value")
+    )
 
-description = current.get("textDescription")
+    description = current.get("textDescription")
 
-if not description or description.lower() == "unknown":
+    if not description or description.lower() == "unknown":
         description = weather["hourly"][0].get("shortForecast", "Unknown")
 
-wind_direction = current.get("windDirection", {}).get("value")
+    wind_direction = current.get("windDirection", {}).get("value")
 
     observed = current.get("timestamp", "")
     if observed:
