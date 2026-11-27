@@ -275,6 +275,7 @@ def hourly_screen(weather):
 
         wind = period.get("windSpeed", "N/A")
         gust = period.get("windGust")
+        print("HOURLY GUST:", period.get("windGust"))
         symbol = weather_symbol(description)
 
         lines.append(
