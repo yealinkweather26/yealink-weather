@@ -10,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 
 import requests
+from urllib.parse import parse_qs
 
 LATITUDE = 39.7857
 LONGITUDE = -75.9788
