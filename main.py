@@ -1,4 +1,5 @@
-
+import ast
+import operator
 import os
 import html
 import logging
@@ -315,6 +316,59 @@ def calculator_screen():
         '</InputField>'
         '</YealinkIPPhoneInputScreen>'
     )
+
+def calculate_screen(expression):
+    operations = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv
+    }
+
+    def calculate(node):
+        if isinstance(node, ast.Expression):
+            return calculate(node.body)
+
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, (int, float)):
+                return node.value
+
+        if isinstance(node, ast.BinOp):
+            operation = operations.get(type(node.op))
+
+            if operation:
+                return operation(
+                    calculate(node.left),
+                    calculate(node.right)
+                )
+
+        if isinstance(node, ast.UnaryOp):
+            if isinstance(node.op, ast.UAdd):
+                return calculate(node.operand)
+            if isinstance(node.op, ast.USub):
+                return -calculate(node.operand)
+
+        raise ValueError("Invalid calculation")
+
+    try:
+        tree = ast.parse(expression, mode="eval")
+        result = calculate(tree)
+
+        return xml_screen(
+            "Calculator Result",
+            [
+                f"Calculation: {expression}",
+                f"Result: {result}",
+                "",
+                "Use BACK to return."
+            ]
+        )
+
+    except ZeroDivisionError:
+        return xml_screen("Calculator", ["Cannot divide by zero."])
+
+    except Exception:
+        return xml_screen("Calculator", ["Invalid calculation."])
 
 def main_menu(host):
     return (
