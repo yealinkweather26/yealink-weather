@@ -458,7 +458,7 @@ def main_menu(host):
 
         '<MenuItem>'
         '<Prompt>Dictionary</Prompt>'
-        '<URI>https://www.dictionary.com/</URI>'
+        f'<URI>https://{host}/dictionary</URI>'        
         '</MenuItem>'
 
         '<MenuItem>'
@@ -827,6 +827,14 @@ class WeatherHandler(BaseHTTPRequestHandler):
         if path == "/calculator":
             self.send_content(calculator_screen())
             return
+        if path == "/dictionary":
+            self.send_content(dictionary_screen(host))
+            return
+
+        if path == "/dictionary-results":
+            word = params.get("word", [""])[0]
+            self.send_content(dictionary_results_screen(word))
+            return   
 
         if path == "/calculate":
             expression = params.get("expression", [""])[0]
