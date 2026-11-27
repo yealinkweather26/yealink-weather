@@ -70,7 +70,49 @@ cache_lock = threading.Lock()
 session = requests.Session()
 session.headers.update(NWS_HEADERS)
 
+def search_results_screen(query):
+    if not query.strip():
+        return xml_screen("Search", ["Please enter search words."])
 
+    try:
+        response = requests.get(
+            "https://html.duckduckgo.com/html/",
+            params={"q": query},
+            headers={
+                "User-Agent": "Mozilla/5.0 YealinkWeather/1.0"
+            },
+            timeout=15
+        )
+        response.raise_for_status()
+
+        parser = SearchParser()
+        parser.feed(response.text)
+
+        lines = [f"Search: {query}", ""]
+
+        if not parser.results:
+            lines.append("No results found.")
+        else:
+            for number, result in enumerate(parser.results[:5], 1):
+                title = result["title"].strip()
+                snippet = result["snippet"].strip()
+
+                lines.append(f"{number}. {title}")
+
+                if snippet:
+                    lines.append(snippet[:140])
+
+                lines.append("")
+
+        return xml_screen("Search Results", lines)
+
+    except Exception as error:
+        logging.exception("Web search failed")
+        return xml_screen(
+            "Search Error",
+            [f"{type(error).__name__}: {str(error)[:120]}"]
+        )
+        
 def fetch_json(url):
     response = session.get(url, timeout=25)
     response.raise_for_status()
