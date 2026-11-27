@@ -97,6 +97,12 @@ params={
         ]
 
         if not items:
+        if len(items) >= 5:
+           menu.append(
+               '<MenuItem><Prompt>More Results</Prompt>'
+               f'<URI>https://{host}/search-results?q={quote_plus(query)}&amp;page={page + 1}</URI>'
+               '</MenuItem>'
+       )
             menu.append(
                 '<MenuItem><Prompt>No results found</Prompt>'
                 '<URI>https://www.bing.com</URI></MenuItem>'
