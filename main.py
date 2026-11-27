@@ -103,7 +103,7 @@ def search_results_screen(query, host, page=1):
                 '<URI>https://www.bing.com</URI></MenuItem>'
             )
         else:
-            for item in items[:5]:
+            for item in items[(page - 1) * 5:page * 5]:
                 title = item.findtext("title", "Untitled")
                 link = item.findtext("link", "")
 
@@ -126,7 +126,7 @@ def search_results_screen(query, host, page=1):
 
         menu.append(
             '<MenuItem><Prompt>Search Again</Prompt>'
-            f'<URI>https://{host}/search</URI></MenuItem>'
+            f'<URI>https://{host}/search-results?q={quote_plus(query)}&amp;page={page + 1}</URI>'
         )
         menu.append(
             '<MenuItem><Prompt>Main Menu</Prompt>'
