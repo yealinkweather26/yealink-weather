@@ -285,12 +285,13 @@ def hourly_screen(weather):
         )
         lines.append(f"Wind: {wind}")
 
-if gust:
-    lines.append(f"Gusts: {gust}")
+        if gust:
+            lines.append(f"Gusts: {gust}")
+
         lines.append("")
 
     return xml_screen("24 Hour Forecast", lines)
-
+    
 def daily_screen(weather):
     periods = weather["daily"]
     grouped = {}
