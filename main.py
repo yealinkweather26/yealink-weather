@@ -85,14 +85,14 @@ def search_results_screen(query):
         )
         response.raise_for_status()
 
-                logging.info(
+        logging.info(
             "SEARCH DEBUG: status=%s, length=%s, result_links=%s",
             response.status_code,
             len(response.text),
             response.text.count("result__a")
         )
 
-                logging.info(
+        logging.info(
             "SEARCH DEBUG: status=%s, length=%s, result_links=%s",
             response.status_code,
             len(response.text),
