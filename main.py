@@ -70,6 +70,7 @@ cache_lock = threading.Lock()
 
 session = requests.Session()
 session.headers.update(NWS_HEADERS)
+
 def search_results_screen(query, host, page=1):
     if not query.strip():
         return xml_screen("Search", ["Please enter search words."])
@@ -77,11 +78,11 @@ def search_results_screen(query, host, page=1):
     try:
         response = requests.get(
             "https://www.bing.com/search",
-params={
-    "q": query,
-    "format": "rss",
-    "first": (page - 1) * 5 + 1
-},
+            params={
+                "q": query,
+                "format": "rss",
+                "first": (page - 1) * 5 + 1
+            },
             headers={"User-Agent": "Mozilla/5.0"},
             timeout=15
         )
@@ -97,12 +98,6 @@ params={
         ]
 
         if not items:
-            if len(items) >= 5:
-               menu.append(
-                   '<MenuItem><Prompt>More Results</Prompt>'
-                   f'<URI>https://{host}/search-results?q={quote_plus(query)}&amp;page={page + 1}</URI>'
-                   '</MenuItem>'
-       )
             menu.append(
                 '<MenuItem><Prompt>No results found</Prompt>'
                 '<URI>https://www.bing.com</URI></MenuItem>'
@@ -119,6 +114,13 @@ params={
                     '<MenuItem>'
                     f'<Prompt>{html.escape(title[:70])}</Prompt>'
                     f'<URI>{html.escape(link)}</URI>'
+                    '</MenuItem>'
+                )
+
+            if len(items) >= 5:
+                menu.append(
+                    '<MenuItem><Prompt>More Results</Prompt>'
+                    f'<URI>https://{host}/search-results?q={quote_plus(query)}&amp;page={page + 1}</URI>'
                     '</MenuItem>'
                 )
 
@@ -140,6 +142,7 @@ params={
             "Search Error",
             [f"{type(error).__name__}: {str(error)[:120]}"]
         )
+
         
         
 def fetch_json(url):
