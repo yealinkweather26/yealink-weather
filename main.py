@@ -389,7 +389,7 @@ def main_menu(host):
 
         '<MenuItem>'
         '<Prompt>Calculator</Prompt>'
-        '<URI>https://www.google.com/search?q=calculator</URI>'
+        f'<URI>https://{host}/calculator</URI>'        
         '</MenuItem>'
 
         '<MenuItem>'
@@ -758,6 +758,15 @@ class WeatherHandler(BaseHTTPRequestHandler):
 
         if path == "/search":
             self.send_content(search_screen(host))
+            return
+            
+        if path == "/calculator":
+            self.send_content(calculator_screen())
+            return
+
+        if path == "/calculate":
+            expression = params.get("expression", [""])[0]
+            self.send_content(calculate_screen(expression))
             return
 
         if path == "/search-results":
