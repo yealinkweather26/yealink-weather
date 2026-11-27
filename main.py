@@ -88,7 +88,14 @@ def search_results_screen(query, host, page=1):
             headers={"User-Agent": "Mozilla/5.0"},
             timeout=15
         )
-        response.raise_for_status()
+        if response.status_code != 200:
+            return xml_screen(
+                "Dictionary Error",
+                [
+                    f"HTTP Status: {response.status_code}",
+                    response.text[:300]
+                ]
+            )
 
         root = ET.fromstring(response.content)
         items = root.findall(".//item")
