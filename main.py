@@ -17,6 +17,52 @@ LATITUDE = 39.7857
 LONGITUDE = -75.9788
 TIMEZONE = "America/New_York"
 
+class SearchParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.results = []
+        self.current = None
+        self.kind = None
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        classes = attrs.get("class", "").split()
+
+        if tag == "a" and "result__a" in classes:
+            self.current = {
+                "title": "",
+                "url": attrs.get("href", "")
+            }
+            self.kind = "title"
+
+        elif "result__snippet" in classes:
+            self.current = {"snippet": ""}
+            self.kind = "snippet"
+
+    def handle_data(self, data):
+        if self.current is not None:
+            if self.kind == "title":
+                self.current["title"] += data
+            elif self.kind == "snippet":
+                self.current["snippet"] += data
+
+    def handle_endtag(self, tag):
+        if self.current is None:
+            return
+
+        if self.kind == "title" and tag == "a":
+            self.results.append(self.current)
+            self.current = None
+            self.kind = None
+
+        elif self.kind == "snippet" and tag in ("a", "div"):
+            if self.results:
+                self.results[-1]["snippet"] = (
+                    self.current["snippet"].strip()
+                )
+            self.current = None
+            self.kind = None
+            
 NWS_HEADERS = {
     "User-Agent": "YealinkWeather/1.0 (weather display application)",
     "Accept": "application/geo+json"
