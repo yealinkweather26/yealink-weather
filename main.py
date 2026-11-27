@@ -70,14 +70,18 @@ cache_lock = threading.Lock()
 
 session = requests.Session()
 session.headers.update(NWS_HEADERS)
-def search_results_screen(query, host):
+def search_results_screen(query, host, page=1):
     if not query.strip():
         return xml_screen("Search", ["Please enter search words."])
 
     try:
         response = requests.get(
             "https://www.bing.com/search",
-            params={"q": query, "format": "rss"},
+params={
+    "q": query,
+    "format": "rss",
+    "first": (page - 1) * 5 + 1
+},
             headers={"User-Agent": "Mozilla/5.0"},
             timeout=15
         )
@@ -625,6 +629,7 @@ class WeatherHandler(BaseHTTPRequestHandler):
 
         params = parse_qs(query_string)
         search_query = params.get("q", [""])[0]
+        search_page = int(params.get("page", ["1"])[0])
         
         host = self.headers.get("Host", "localhost")
 
@@ -647,10 +652,10 @@ class WeatherHandler(BaseHTTPRequestHandler):
             self.send_content(search_screen(host))
             return
         if path == "/search-results":
-            self.send_content(
-                search_results_screen(search_query, host)
-            )
-            return
+    self.send_content(
+        search_results_screen(search_query, host, search_page)
+    )
+    return
 
         if path not in ("/current", "/hourly", "/daily", "/alerts"):
             self.send_content(
