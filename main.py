@@ -97,7 +97,7 @@ params={
         ]
 
         if not items:
-        if len(items) >= 5:
+            if len(items) >= 5:
            menu.append(
                '<MenuItem><Prompt>More Results</Prompt>'
                f'<URI>https://{host}/search-results?q={quote_plus(query)}&amp;page={page + 1}</URI>'
