@@ -21,47 +21,42 @@ class SearchParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.results = []
-        self.current = None
-        self.kind = None
+        self.capture = None
+        self.depth = 0
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
         classes = attrs.get("class", "").split()
 
-        if tag == "a" and "result__a" in classes:
-            self.current = {
-                "title": "",
-                "url": attrs.get("href", "")
-            }
-            self.kind = "title"
-
-        elif "result__snippet" in classes:
-            self.current = {"snippet": ""}
-            self.kind = "snippet"
-
-    def handle_data(self, data):
-        if self.current is not None:
-            if self.kind == "title":
-                self.current["title"] += data
-            elif self.kind == "snippet":
-                self.current["snippet"] += data
-
-    def handle_endtag(self, tag):
-        if self.current is None:
+        if self.capture:
+            self.depth += 1
             return
 
-        if self.kind == "title" and tag == "a":
-            self.results.append(self.current)
-            self.current = None
-            self.kind = None
+        if tag == "a" and "result__a" in classes:
+            item = {
+                "title": "",
+                "url": attrs.get("href", ""),
+                "snippet": ""
+            }
+            self.results.append(item)
+            self.capture = (item, "title")
+            self.depth = 1
 
-        elif self.kind == "snippet" and tag in ("a", "div"):
-            if self.results:
-                self.results[-1]["snippet"] = (
-                    self.current["snippet"].strip()
-                )
-            self.current = None
-            self.kind = None
+        elif "result__snippet" in classes and self.results:
+            self.capture = (self.results[-1], "snippet")
+            self.depth = 1
+
+    def handle_data(self, data):
+        if self.capture:
+            item, field = self.capture
+            item[field] += data
+
+    def handle_endtag(self, tag):
+        if self.capture:
+            self.depth -= 1
+            if self.depth <= 0:
+                self.capture = None
+                self.depth = 0
             
 NWS_HEADERS = {
     "User-Agent": "YealinkWeather/1.0 (weather display application)",
