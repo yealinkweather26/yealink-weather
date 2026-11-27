@@ -598,10 +598,15 @@ class WeatherHandler(BaseHTTPRequestHandler):
         self.do_GET()
 
     def do_GET(self):
-        path = self.path.split("?")[0].rstrip("/")
+        raw_path, _, query_string = self.path.partition("?")
+        path = raw_path.rstrip("/")
+
         if not path:
             path = "/"
 
+        params = parse_qs(query_string)
+        search_query = params.get("q", [""])[0]
+        
         host = self.headers.get("Host", "localhost")
 
         if path == "/health":
@@ -621,6 +626,11 @@ class WeatherHandler(BaseHTTPRequestHandler):
 
         if path == "/search":
             self.send_content(search_screen(host))
+            return
+                if path == "/search-results":
+            self.send_content(
+                search_results_screen(search_query)
+            )
             return
 
         if path not in ("/current", "/hourly", "/daily", "/alerts"):
