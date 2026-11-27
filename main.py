@@ -302,6 +302,20 @@ def search_screen(host):
     )
      
 
+def calculator_screen():
+    return (
+        '<?xml version="1.0" encoding="ISO-8859-1"?>'
+        '<YealinkIPPhoneInputScreen type="string" '
+        'Beep="no" Timeout="0" LockIn="no">'
+        '<Title>Calculator</Title>'
+        '<URL>https://yealink-weather.onrender.com/calculate</URL>'
+        '<InputField type="string" editable="yes">'
+        '<Prompt>Example: 25+10</Prompt>'
+        '<Parameter>expression</Parameter>'
+        '</InputField>'
+        '</YealinkIPPhoneInputScreen>'
+    )
+
 def main_menu(host):
     return (
         '<?xml version="1.0" encoding="ISO-8859-1"?>'
