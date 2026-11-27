@@ -627,7 +627,7 @@ class WeatherHandler(BaseHTTPRequestHandler):
         if path == "/search":
             self.send_content(search_screen(host))
             return
-                if path == "/search-results":
+        if path == "/search-results":
             self.send_content(
                 search_results_screen(search_query)
             )
