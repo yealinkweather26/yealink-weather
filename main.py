@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 
 import requests
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote_plus
 from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
 
