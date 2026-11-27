@@ -71,7 +71,7 @@ cache_lock = threading.Lock()
 session = requests.Session()
 session.headers.update(NWS_HEADERS)
 
-def search_results_screen(query):
+def search_results_screen(query, host):
     if not query.strip():
         return xml_screen("Search", ["Please enter search words."])
 
@@ -89,31 +89,44 @@ def search_results_screen(query):
         root = ET.fromstring(response.content)
         items = root.findall(".//item")
 
-        lines = [f"Search: {query}", ""]
+        menu = [
+            '<?xml version="1.0" encoding="ISO-8859-1"?>',
+            '<YealinkIPPhoneTextMenu>',
+            '<Title>Search Results</Title>'
+        ]
 
         if not items:
-            lines.append("No results found.")
+            menu.append(
+                '<MenuItem><Prompt>No results found</Prompt>'
+                '<URI>https://www.bing.com</URI></MenuItem>'
+            )
         else:
-            for number, item in enumerate(items[:5], 1):
+            for item in items[:5]:
                 title = item.findtext("title", "Untitled")
-                description = item.findtext("description", "")
                 link = item.findtext("link", "")
 
-                lines.append(f"{number}. {title}")
-                if description:
-                    lines.append(description[:140])
-                if link:
-                    lines.append(link[:100])
-                lines.append("")
+                if not link.startswith(("http://", "https://")):
+                    continue
 
-        return xml_screen("Search Results", lines)
+                menu.append(
+                    '<MenuItem>'
+                    f'<Prompt>{html.escape(title[:70])}</Prompt>'
+                    f'<URI>{html.escape(link)}</URI>'
+                    '</MenuItem>'
+                )
 
-    except Exception as error:
-        logging.exception("Bing search failed")
-        return xml_screen(
-            "Search Error",
-            [f"{type(error).__name__}: {str(error)[:120]}"]
+        menu.append(
+            '<MenuItem><Prompt>Search Again</Prompt>'
+            f'<URI>https://{host}/search</URI></MenuItem>'
         )
+        menu.append(
+            '<MenuItem><Prompt>Main Menu</Prompt>'
+            f'<URI>https://{host}/</URI></MenuItem>'
+        )
+        menu.append('</YealinkIPPhoneTextMenu>')
+
+        return "".join(menu)
+        
         
 def fetch_json(url):
     response = session.get(url, timeout=25)
@@ -631,7 +644,7 @@ class WeatherHandler(BaseHTTPRequestHandler):
             return
         if path == "/search-results":
             self.send_content(
-                search_results_screen(search_query)
+                search_results_screen(search_query, host)
             )
             return
 
