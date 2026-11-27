@@ -162,6 +162,20 @@ def xml_screen(title, lines):
         '</YealinkIPPhoneTextScreen>'
     )
     
+def search_screen(host):
+    return (
+        '<?xml version="1.0" encoding="ISO-8859-1"?>'
+        '<YealinkIPPhoneInputScreen type="string" '
+        'Beep="no" Timeout="0" LockIn="no">'
+        '<Title>Search</Title>'
+        f'<URL>https://{host}/search-results</URL>'
+        '<InputField type="string" editable="yes">'
+        '<Prompt>Enter search words</Prompt>'
+        '<Parameter>q</Parameter>'
+        '</InputField>'
+        '</YealinkIPPhoneInputScreen>'
+    )
+     
 def main_menu(host):
     return (
         '<?xml version="1.0" encoding="ISO-8859-1"?>'
@@ -521,9 +535,7 @@ class WeatherHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/search":
-            self.send_content(
-                xml_screen("Web Search", ["Search screen coming next."])
-            )
+            self.send_content(search_screen(host))
             return
 
         if path not in ("/current", "/hourly", "/daily", "/alerts"):
