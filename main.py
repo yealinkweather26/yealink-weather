@@ -161,7 +161,26 @@ def xml_screen(title, lines):
         f'<Text>{safe_text}</Text>'
         '</YealinkIPPhoneTextScreen>'
     )
+    
+def main_menu(host):
+    return (
+        '<?xml version="1.0" encoding="ISO-8859-1"?>'
+        '<YealinkIPPhoneTextMenu>'
+        '<Title>MY PHONE</Title>'
 
+        '<MenuItem>'
+        '<Prompt>Weather</Prompt>'
+        f'<URI>https://{host}/weather</URI>'
+        '</MenuItem>'
+
+        '<MenuItem>'
+        '<Prompt>Web Search</Prompt>'
+        f'<URI>https://{host}/search</URI>'
+        '</MenuItem>'
+
+        '</YealinkIPPhoneTextMenu>'
+    )
+    
 def weather_menu(host):
     return (
         '<?xml version="1.0" encoding="ISO-8859-1"?>'
@@ -480,51 +499,65 @@ class WeatherHandler(BaseHTTPRequestHandler):
         self.do_GET()
 
     def do_GET(self):
-        path = self.path.split("?")[0].rstrip("/")
-        if not path:
-            path = "/"
+    path = self.path.split("?")[0].rstrip("/")
+    if not path:
+        path = "/"
 
-        if path == "/health":
-            self.send_content(
-                "Weather service is running",
-                "text/plain"
-            )
-            return
+    host = self.headers.get("Host", "localhost")
 
-        if path == "/":
-            host = self.headers.get("Host", "localhost")
-            self.send_content(weather_menu(host))
-            return
+    if path == "/health":
+        self.send_content(
+            "Weather service is running",
+            "text/plain"
+        )
+        return
 
-        if path not in ("/current", "/hourly", "/daily", "/alerts"):
-            self.send_content(
-                xml_screen("Weather", ["Page not found"])
-            )
-            return
+    # New main menu
+    if path == "/":
+        self.send_content(main_menu(host))
+        return
 
-        try:
-            if path == "/alerts":
-                result = alerts_screen()
+    # Existing weather menu
+    if path == "/weather":
+        self.send_content(weather_menu(host))
+        return
+
+    # Web Search will be added next
+    if path == "/search":
+        self.send_content(
+            xml_screen("Web Search", ["Search screen coming next."])
+        )
+        return
+
+    if path not in ("/current", "/hourly", "/daily", "/alerts"):
+        self.send_content(
+            xml_screen("Weather", ["Page not found"])
+        )
+        return
+
+    try:
+        if path == "/alerts":
+            result = alerts_screen()
+        else:
+            weather = get_weather()
+
+            if path == "/current":
+                result = current_screen(weather)
+            elif path == "/hourly":
+                result = hourly_screen(weather)
             else:
-                weather = get_weather()
+                result = daily_screen(weather)
 
-                if path == "/current":
-                    result = current_screen(weather)
-                elif path == "/hourly":
-                    result = hourly_screen(weather)
-                else:
-                    result = daily_screen(weather)
+        self.send_content(result)
 
-            self.send_content(result)
-
-        except Exception as error:
-            logging.exception("Weather request failed")
-            message = (
-                f"{type(error).__name__}: {str(error)[:150]}"
-            )
-            self.send_content(
-                xml_screen("Weather Error", [message])
-            )
+    except Exception as error:
+        logging.exception("Weather request failed")
+        message = (
+            f"{type(error).__name__}: {str(error)[:150]}"
+        )
+        self.send_content(
+            xml_screen("Weather Error", [message])
+        )
 
     def log_message(self, format_string, *args):
         logging.info(
