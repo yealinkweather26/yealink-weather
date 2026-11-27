@@ -5,7 +5,6 @@ import html
 import logging
 import threading
 import time
-
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -370,6 +369,20 @@ def calculate_screen(expression):
 
     except Exception:
         return xml_screen("Calculator", ["Invalid calculation."])
+
+def dictionary_screen(host):
+    return (
+        '<?xml version="1.0" encoding="ISO-8859-1"?>'
+        '<YealinkIPPhoneInputScreen type="string" '
+        'Beep="no" Timeout="0" LockIn="no">'
+        '<Title>Dictionary</Title>'
+        f'<URL>https://{host}/dictionary-results</URL>'
+        '<InputField type="string" editable="yes">'
+        '<Prompt>Enter a word</Prompt>'
+        '<Parameter>word</Parameter>'
+        '</InputField>'
+        '</YealinkIPPhoneInputScreen>'
+    )
 
 def main_menu(host):
     return (
