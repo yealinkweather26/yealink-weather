@@ -499,7 +499,7 @@ class WeatherHandler(BaseHTTPRequestHandler):
         self.do_GET()
 
     def do_GET(self):
-    path = self.path.split("?")[0].rstrip("/")
+        path = self.path.split("?")[0].rstrip("/")
     if not path:
         path = "/"
 
