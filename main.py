@@ -92,9 +92,21 @@ def search_results_screen(query):
             response.text.count("result__a")
         )
 
+                logging.info(
+            "SEARCH DEBUG: status=%s, length=%s, result_links=%s",
+            response.status_code,
+            len(response.text),
+            response.text.count("result__a")
+        )
+
         parser = SearchParser()
         parser.feed(response.text)
 
+        logging.info(
+            "SEARCH DEBUG: parsed results=%s",
+            len(parser.results)
+        )
+        
         logging.info(
             "SEARCH DEBUG: parsed results=%s",
             len(parser.results)
