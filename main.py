@@ -274,6 +274,7 @@ def hourly_screen(weather):
         ).get("value")
 
         wind = period.get("windSpeed", "N/A")
+        gust = period.get("windGust")
         symbol = weather_symbol(description)
 
         lines.append(
@@ -283,6 +284,9 @@ def hourly_screen(weather):
             f"{symbol} {description} | Rain {probability if probability is not None else 'N/A'}%"
         )
         lines.append(f"Wind: {wind}")
+
+if gust:
+    lines.append(f"Gusts: {gust}")
         lines.append("")
 
     return xml_screen("24 Hour Forecast", lines)
