@@ -120,7 +120,7 @@ def search_results_screen(query, host, page=1):
             if len(items) >= 5:
                 menu.append(
                     '<MenuItem><Prompt>More Results</Prompt>'
-                    f'<URI>https://{host}/search-results?q={quote_plus(query)}&amp;page={page + 1}</URI>'
+                    f'<URI>https://www.bing.com/search?q={quote_plus(query)}</URI>'
                     '</MenuItem>'
                 )
 
