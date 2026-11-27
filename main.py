@@ -665,9 +665,9 @@ class WeatherHandler(BaseHTTPRequestHandler):
 
         if path not in ("/current", "/hourly", "/daily", "/alerts"):
             self.send_content(
-                xml_screen("Weather", ["Page not found"])
-            )
-            return
+        xml_screen("Weather", ["Page not found"])
+    )
+    return
 
         try:
             if path == "/alerts":
