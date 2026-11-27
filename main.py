@@ -500,64 +500,61 @@ class WeatherHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?")[0].rstrip("/")
-    if not path:
-        path = "/"
+        if not path:
+            path = "/"
 
-    host = self.headers.get("Host", "localhost")
+        host = self.headers.get("Host", "localhost")
 
-    if path == "/health":
-        self.send_content(
-            "Weather service is running",
-            "text/plain"
-        )
-        return
+        if path == "/health":
+            self.send_content(
+                "Weather service is running",
+                "text/plain"
+            )
+            return
 
-    # New main menu
-    if path == "/":
-        self.send_content(main_menu(host))
-        return
+        if path == "/":
+            self.send_content(main_menu(host))
+            return
 
-    # Existing weather menu
-    if path == "/weather":
-        self.send_content(weather_menu(host))
-        return
+        if path == "/weather":
+            self.send_content(weather_menu(host))
+            return
 
-    # Web Search will be added next
-    if path == "/search":
-        self.send_content(
-            xml_screen("Web Search", ["Search screen coming next."])
-        )
-        return
+        if path == "/search":
+            self.send_content(
+                xml_screen("Web Search", ["Search screen coming next."])
+            )
+            return
 
-    if path not in ("/current", "/hourly", "/daily", "/alerts"):
-        self.send_content(
-            xml_screen("Weather", ["Page not found"])
-        )
-        return
+        if path not in ("/current", "/hourly", "/daily", "/alerts"):
+            self.send_content(
+                xml_screen("Weather", ["Page not found"])
+            )
+            return
 
-    try:
-        if path == "/alerts":
-            result = alerts_screen()
-        else:
-            weather = get_weather()
-
-            if path == "/current":
-                result = current_screen(weather)
-            elif path == "/hourly":
-                result = hourly_screen(weather)
+        try:
+            if path == "/alerts":
+                result = alerts_screen()
             else:
-                result = daily_screen(weather)
+                weather = get_weather()
 
-        self.send_content(result)
+                if path == "/current":
+                    result = current_screen(weather)
+                elif path == "/hourly":
+                    result = hourly_screen(weather)
+                else:
+                    result = daily_screen(weather)
 
-    except Exception as error:
-        logging.exception("Weather request failed")
-        message = (
-            f"{type(error).__name__}: {str(error)[:150]}"
-        )
-        self.send_content(
-            xml_screen("Weather Error", [message])
-        )
+            self.send_content(result)
+
+        except Exception as error:
+            logging.exception("Weather request failed")
+            message = (
+                f"{type(error).__name__}: {str(error)[:150]}"
+            )
+            self.send_content(
+                xml_screen("Weather Error", [message])
+            )
 
     def log_message(self, format_string, *args):
         logging.info(
