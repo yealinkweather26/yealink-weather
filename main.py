@@ -384,6 +384,57 @@ def dictionary_screen(host):
         '</YealinkIPPhoneInputScreen>'
     )
 
+def dictionary_results_screen(word):
+    word = word.strip()
+
+    if not word:
+        return xml_screen("Dictionary", ["Please enter a word."])
+
+    try:
+        response = requests.get(
+            f"https://api.dictionaryapi.dev/api/v2/entries/en/{quote_plus(word)}",
+            headers={"User-Agent": "YealinkWeather"},
+            timeout=15
+        )
+
+        if response.status_code == 404:
+            return xml_screen(
+                "Dictionary",
+                [f"No definition found for: {word}"]
+            )
+
+        response.raise_for_status()
+        data = response.json()
+
+        lines = [f"Word: {word}", ""]
+
+        for entry in data[:1]:
+            phonetic = entry.get("phonetic", "")
+            if phonetic:
+                lines.append(f"Pronunciation: {phonetic}")
+                lines.append("")
+
+            for meaning in entry.get("meanings", [])[:3]:
+                lines.append(meaning.get("partOfSpeech", "").upper())
+
+                for definition in meaning.get("definitions", [])[:2]:
+                    lines.append(definition.get("definition", ""))
+
+                    example = definition.get("example")
+                    if example:
+                        lines.append(f"Example: {example}")
+
+                    lines.append("")
+
+        return xml_screen("Dictionary", lines)
+
+    except Exception as error:
+        logging.exception("Dictionary lookup failed")
+        return xml_screen(
+            "Dictionary Error",
+            [f"{type(error).__name__}: {str(error)[:100]}"]
+        )
+
 def main_menu(host):
     return (
         '<?xml version="1.0" encoding="ISO-8859-1"?>'
