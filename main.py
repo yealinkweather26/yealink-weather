@@ -301,6 +301,7 @@ def search_screen(host):
         '</YealinkIPPhoneInputScreen>'
     )
      
+
 def main_menu(host):
     return (
         '<?xml version="1.0" encoding="ISO-8859-1"?>'
@@ -315,6 +316,26 @@ def main_menu(host):
         '<MenuItem>'
         '<Prompt>Search</Prompt>'
         f'<URI>https://{host}/search</URI>'
+        '</MenuItem>'
+
+        '<MenuItem>'
+        '<Prompt>Calculator</Prompt>'
+        '<URI>https://www.google.com/search?q=calculator</URI>'
+        '</MenuItem>'
+
+        '<MenuItem>'
+        '<Prompt>Dictionary</Prompt>'
+        '<URI>https://www.dictionary.com/</URI>'
+        '</MenuItem>'
+
+        '<MenuItem>'
+        '<Prompt>YouTube</Prompt>'
+        '<URI>https://www.youtube.com/</URI>'
+        '</MenuItem>'
+
+        '<MenuItem>'
+        '<Prompt>Maps</Prompt>'
+        '<URI>https://www.google.com/maps</URI>'
         '</MenuItem>'
 
         '</YealinkIPPhoneTextMenu>'
