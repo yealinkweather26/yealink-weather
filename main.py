@@ -274,6 +274,7 @@ def hourly_screen(weather):
         ).get("value")
 
         wind = period.get("windSpeed", "N/A")
+        wind_direction = period.get("windDirection", "N/A")
         gust = period.get("windGust")
         print("HOURLY GUST:", period.get("windGust"))
         symbol = weather_symbol(description)
@@ -284,7 +285,9 @@ def hourly_screen(weather):
         lines.append(
             f"{symbol} {description} | Rain {probability if probability is not None else 'N/A'}%"
         )
-        lines.append(f"Wind: {wind}")
+        lines.append(
+            f"Wind: {wind_direction} {wind}"
+        )
 
         if gust:
             lines.append(f"Gusts: {gust}")
