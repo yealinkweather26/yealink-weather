@@ -77,62 +77,39 @@ def search_results_screen(query):
 
     try:
         response = requests.get(
-            "https://html.duckduckgo.com/html/",
-            params={"q": query},
+            "https://www.bing.com/search",
+            params={"q": query, "format": "rss"},
             headers={
-                "User-Agent": "Mozilla/5.0 YealinkWeather/1.0"
+                "User-Agent": "Mozilla/5.0"
             },
             timeout=15
         )
         response.raise_for_status()
 
-        logging.info(
-            "SEARCH DEBUG: status=%s, length=%s, result_links=%s",
-            response.status_code,
-            len(response.text),
-            response.text.count("result__a")
-        )
+        root = ET.fromstring(response.content)
+        items = root.findall(".//item")
 
-        logging.info(
-            "SEARCH DEBUG: status=%s, length=%s, result_links=%s",
-            response.status_code,
-            len(response.text),
-            response.text.count("result__a")
-        )
-
-        parser = SearchParser()
-        parser.feed(response.text)
-
-        logging.info(
-            "SEARCH DEBUG: parsed results=%s",
-            len(parser.results)
-        )
-        
-        logging.info(
-            "SEARCH DEBUG: parsed results=%s",
-            len(parser.results)
-        )
-        
         lines = [f"Search: {query}", ""]
 
-        if not parser.results:
+        if not items:
             lines.append("No results found.")
         else:
-            for number, result in enumerate(parser.results[:5], 1):
-                title = result["title"].strip()
-                snippet = result["snippet"].strip()
+            for number, item in enumerate(items[:5], 1):
+                title = item.findtext("title", "Untitled")
+                description = item.findtext("description", "")
+                link = item.findtext("link", "")
 
                 lines.append(f"{number}. {title}")
-
-                if snippet:
-                    lines.append(snippet[:140])
-
+                if description:
+                    lines.append(description[:140])
+                if link:
+                    lines.append(link[:100])
                 lines.append("")
 
         return xml_screen("Search Results", lines)
 
     except Exception as error:
-        logging.exception("Web search failed")
+        logging.exception("Bing search failed")
         return xml_screen(
             "Search Error",
             [f"{type(error).__name__}: {str(error)[:120]}"]
