@@ -174,7 +174,7 @@ def main_menu(host):
         '</MenuItem>'
 
         '<MenuItem>'
-        '<Prompt>Web Search</Prompt>'
+        '<Prompt>Search</Prompt>'
         f'<URI>https://{host}/search</URI>'
         '</MenuItem>'
 
