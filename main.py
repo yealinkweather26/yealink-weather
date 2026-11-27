@@ -70,7 +70,6 @@ cache_lock = threading.Lock()
 
 session = requests.Session()
 session.headers.update(NWS_HEADERS)
-
 def search_results_screen(query, host):
     if not query.strip():
         return xml_screen("Search", ["Please enter search words."])
@@ -79,9 +78,7 @@ def search_results_screen(query, host):
         response = requests.get(
             "https://www.bing.com/search",
             params={"q": query, "format": "rss"},
-            headers={
-                "User-Agent": "Mozilla/5.0"
-            },
+            headers={"User-Agent": "Mozilla/5.0"},
             timeout=15
         )
         response.raise_for_status()
@@ -126,6 +123,13 @@ def search_results_screen(query, host):
         menu.append('</YealinkIPPhoneTextMenu>')
 
         return "".join(menu)
+
+    except Exception as error:
+        logging.exception("Bing search failed")
+        return xml_screen(
+            "Search Error",
+            [f"{type(error).__name__}: {str(error)[:120]}"]
+        )
         
         
 def fetch_json(url):
